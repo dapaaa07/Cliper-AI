@@ -37,6 +37,32 @@ Link YouTube → Pilih Timestamp → AI Proses Otomatis → Download Video + Sub
 
 ---
 
+## 🖼️ Demo / Tampilan Aplikasi
+
+Berikut adalah tampilan antarmuka (UI/UX) modern premium dari **Clipper.AI** yang menggunakan tema *dark mode* dan efek *glassmorphism*:
+
+### 1. Dashboard (Landing Page)
+*Halaman utama minimalis untuk memasukkan link video YouTube.*
+![Dashboard](screenshots/01-dashboard.png)
+
+### 2. Panel Pemilihan Klip (Clip Selector)
+*Panel interaktif untuk menentukan durasi waktu klip (start/end) dan orientasi aspek rasio (Vertikal 9:16 atau Horizontal 16:9).*
+![Clip Selector](screenshots/02-clip-selector.png)
+
+### 3. Pemantau Progress Real-Time (Processing Page)
+*Halaman pemantau progress pemrosesan video yang di-update secara otomatis.*
+![Processing Page](screenshots/03-processing.png)
+
+### 4. Hasil & Unduhan (Results Page)
+*Halaman akhir untuk memutar hasil klip secara instan, menyalin teks transkripsi AI sekali-klik, dan mengunduh video (.mp4) beserta subtitle (.srt / .vtt).*
+![Results Page](screenshots/04-results.png)
+
+### 5. Riwayat Tugas & Debug Console (History Page)
+*Panel dashboard manajemen riwayat untuk memantau status tugas, menghapus tugas/tugas yang gagal, dan melihat log debug konsol pemrosesan.*
+![History Page](screenshots/05-history.png)
+
+---
+
 ## ✨ Fitur Utama
 
 ### 🎯 Smart Clip Extraction
