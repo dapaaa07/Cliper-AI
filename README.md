@@ -159,7 +159,7 @@ Berikut adalah tampilan antarmuka (UI/UX) modern premium dari **Clipper.AI** yan
 ### Langkah 1: Clone Repository
 
 ```bash
-git clone https://github.com/USERNAME/ai-clipper.git
+git clone https://github.com/dapaaa07/ai-clipper.git
 cd ai-clipper
 ```
 
