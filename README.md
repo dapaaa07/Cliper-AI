@@ -80,10 +80,12 @@ Berikut adalah tampilan antarmuka (UI/UX) modern premium dari **Clipper.AI** yan
 - **EMA Smooth Path**: Transisi pergerakan kamera super mulus dengan Exponential Moving Average (EMA) agar pergerakan terasa sinematik seperti diarahkan juru kamera profesional.
 - **Progressive Logs**: Output log real-time yang detail sehingga Laravel queue worker dapat memantau status secara live tanpa dianggap stuck.
 
-### 📝 Auto-Subtitle Generation
-- Transkripsi audio menggunakan **Groq Cloud API** (Whisper Large V3) — gratis dan super cepat (1–2 detik).
-- Menghasilkan file subtitle **format .srt** yang siap digunakan.
-- Mendukung berbagai bahasa secara otomatis (auto-detect language).
+### 📝 Auto-Subtitle Generation & Styling (Viral Highlight Effect)
+- **Fast Transcription**: Transkripsi audio menggunakan **Groq Cloud API** (Whisper Large V3) — gratis dan super cepat (1–2 detik).
+- **Format .srt & .json**: Menghasilkan file subtitle standar SRT serta format timestamps word-level JSON untuk penempatan waktu yang sangat akurat.
+- **Dynamic Styling (Advanced SubStation Alpha)**: Memanfaatkan `subtitle_styler.py` untuk menghasilkan efek subtitle bergaya viral dengan highlight kata aktif (berwarna kuning tebal: `&H00FFFF&`) disertai animasi popup dinamis saat diucapkan pembicara.
+- **Auto Burn-In (FFmpeg Filter)**: Melakukan proses *burn-in* langsung ke video output menggunakan filter FFmpeg secara optimal dan efisien tanpa merusak sinkronisasi audio.
+- **Multi-language**: Mendukung berbagai bahasa secara otomatis (auto-detect language).
 
 ### 📊 Real-Time Progress Monitoring
 - Pantau status pemrosesan setiap klip secara real-time dengan progress bar.
@@ -121,14 +123,15 @@ Berikut adalah tampilan antarmuka (UI/UX) modern premium dari **Clipper.AI** yan
 │  (videos table)         (clips table)                       │
 └──────────────────────────┬──────────────────────────────────┘
                            │ Symfony Process (subprocess)
-┌──────────────────────────▼──────────────────────────────────┐
+┌─────────────────────────────────────────────────────────────┐
 │               PYTHON AI PIPELINE                            │
 │                                                             │
 │  clipper_bot.py (Orchestrator)                              │
 │       │                                                     │
-│       ├── yt-dlp          → Download segment YouTube        │
-│       ├── face_tracker.py → OpenCV face tracking & crop     │
-│       └── transcribe.py   → Groq API (Whisper) → .srt      │
+│       ├── yt-dlp            → Download segment YouTube      │
+│       ├── face_tracker.py   → MediaPipe/OpenCV tracking     │
+│       ├── transcribe.py     → Groq Whisper → SRT & JSON     │
+│       └── subtitle_styler.py→ Dynamic ASS style & burn-in   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -349,8 +352,9 @@ ai-clipper/
 │   │   └── Clip.php                 # Model klip (timestamp, status, progress)
 │   └── PythonScripts/
 │       ├── clipper_bot.py           # Orchestrator utama pipeline AI
-│       ├── face_tracker.py          # OpenCV face tracking & auto-reframe
+│       ├── face_tracker.py          # OpenCV/MediaPipe face tracking & crop
 │       ├── transcribe.py            # Groq API Whisper transcription
+│       ├── subtitle_styler.py       # Pembuat subtitle ASS & burn-in FFmpeg
 │       └── requirements.txt         # Dependensi Python
 ├── database/
 │   └── migrations/
