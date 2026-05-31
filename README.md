@@ -70,11 +70,15 @@ Berikut adalah tampilan antarmuka (UI/UX) modern premium dari **Clipper.AI** yan
 - Tentukan **banyak klip sekaligus** dari satu video dengan timestamp berbeda.
 - Pilih output **Vertikal (9:16)** untuk Shorts/Reels/TikTok atau **Horizontal (16:9)** untuk format standar.
 
-### 👤 AI Face Tracking & Auto-Reframe
-- Menggunakan **OpenCV Haar Cascade** untuk deteksi wajah secara real-time.
-- **Exponential Moving Average (EMA) smoothing** untuk pergerakan kamera yang halus dan sinematik.
-- Otomatis melakukan crop dan reframe ke format vertikal 9:16 dengan wajah pembicara selalu berada di tengah frame.
-- Optimasi performa: deteksi wajah setiap 3 frame untuk kecepatan rendering tinggi.
+### 👤 Robust AI Face Tracking & Auto-Reframe (Dual-Pass)
+- **Detektor Ganda Utama & Fallback**: Menggunakan **MediaPipe Face Detection** sebagai detektor utama yang sangat presisi, dengan fallback otomatis ke **OpenCV Haar Cascade** jika MediaPipe tidak terinstal, serta fallback akhir ke stable center-crop agar pemrosesan tidak pernah gagal total.
+- **Arsitektur Dual-Pass**: 
+  - *Pass 1*: Menganalisis metadata koordinat wajah di setiap frame tanpa membebani memori (memory-safe).
+  - *Pass 2*: Melakukan cropping, auto-reframe, dan perpaduan audio secara presisi berdasarkan metadata.
+- **Target Lock & Hysteresis**: Mengunci target wajah utama pada video multi-person (seperti podcast) untuk mencegah efek "loncat target" atau glitching antar pembicara.
+- **Lost-Face Hold & Dead-Zone**: Mempertahankan posisi kamera terakhir saat wajah tertutup sementara (lost-face hold), dan menghindari getaran kamera kecil yang tidak perlu menggunakan rentang dead-zone dinamis.
+- **EMA Smooth Path**: Transisi pergerakan kamera super mulus dengan Exponential Moving Average (EMA) agar pergerakan terasa sinematik seperti diarahkan juru kamera profesional.
+- **Progressive Logs**: Output log real-time yang detail sehingga Laravel queue worker dapat memantau status secara live tanpa dianggap stuck.
 
 ### 📝 Auto-Subtitle Generation
 - Transkripsi audio menggunakan **Groq Cloud API** (Whisper Large V3) — gratis dan super cepat (1–2 detik).
@@ -278,6 +282,30 @@ npm run dev
 > ```
 
 Buka browser dan akses: **http://localhost:8000**
+
+---
+
+## 🍪 Bypass Bot Challenge & Limit YouTube
+
+Untuk menghindari error **HTTP Error 429: Too Many Requests** atau verifikasi bot (*Sign in to confirm you're not a bot*), Clipper.AI menggunakan pendekatan khusus dengan menyuntikkan cookies browser aktif dan memanfaatkan Javascript Runtime (Node.js).
+
+### Langkah Konfigurasi:
+
+1. **Instal Node.js di Sistem**:
+   Pastikan Node.js terinstal di sistem Anda. `yt-dlp` memerlukan Javascript Runtime untuk memecahkan tantangan sandi signature player YouTube.
+   ```bash
+   node -v
+   ```
+
+2. **Ekspor Cookies dari Browser**:
+   - Pasang ekstensi browser seperti **Get cookies.txt LOCALLY** (tersedia untuk Chrome/Edge/Firefox).
+   - Buka [YouTube](https://www.youtube.com) di browser Anda dan pastikan Anda dalam keadaan aktif (login disarankan agar session cookies lebih tahan lama).
+   - Klik ikon ekstensi dan pilih **Export / Download** untuk mendapatkan format Netscape cookies.
+   - Simpan file tersebut dengan nama **`cookies.txt`** tepat di root direktori proyek Anda (`/opt/lampp/htdocs/ai-clipper/cookies.txt`).
+
+3. **Keamanan & Otomatisasi**:
+   - File `cookies.txt` telah ditambahkan ke `.gitignore` secara otomatis sehingga **aman dan tidak akan pernah ter-push** ke GitHub publik Anda.
+   - Skrip pipeline (`clipper_bot.py`) akan mendeteksi keberadaan file `cookies.txt` di root secara otomatis dan menyuntikkannya ke `yt-dlp` beserta argumen bypass handal lainnya (`--js-runtimes node` & `--remote-components ejs`).
 
 ---
 
