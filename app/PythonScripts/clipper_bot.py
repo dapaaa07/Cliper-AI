@@ -22,6 +22,7 @@ def process_clip(clip_id, youtube_url, start_time, end_time, aspect_ratio):
 
     # File paths
     temp_raw_path = os.path.join(storage_dir, f"{clip_id}_raw.mp4")
+    reframed_video_path = os.path.join(storage_dir, f"{clip_id}_reframed.mp4")
     final_video_path = os.path.join(storage_dir, f"{clip_id}.mp4")
     final_srt_path = os.path.join(storage_dir, f"{clip_id}.srt")
 
@@ -40,10 +41,18 @@ def process_clip(clip_id, youtube_url, start_time, end_time, aspect_ratio):
     print(f"Downloading YouTube segment: {start_time} to {end_time} using {ytdlp_bin}...")
     sys.stdout.flush()
 
+    cookies_args = []
+    cookies_txt = os.path.join(laravel_root, "cookies.txt")
+    if os.path.exists(cookies_txt):
+        cookies_args = ["--cookies", cookies_txt]
+
     # Prefer H.264 (avc1) video codec, which is universally compatible with OpenCV
     yt_cmd = [
         ytdlp_bin,
         "--no-playlist",
+        "--js-runtimes", "node",
+        "--remote-components", "ejs:github",
+    ] + cookies_args + [
         "--external-downloader", "ffmpeg",
         "--external-downloader-args", f"ffmpeg_i:-ss {start_time} -to {end_time}",
         "-f", "bestvideo[vcodec^=avc1][ext=mp4]+bestaudio[ext=m4a]/bestvideo[vcodec^=avc1]+bestaudio/best[ext=mp4]/best",
@@ -64,6 +73,9 @@ def process_clip(clip_id, youtube_url, start_time, end_time, aspect_ratio):
         fallback_cmd = [
             ytdlp_bin,
             "--no-playlist",
+            "--js-runtimes", "node",
+            "--remote-components", "ejs:github",
+        ] + cookies_args + [
             "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
             "--merge-output-format", "mp4",
             "--output", temp_raw_path,
@@ -144,7 +156,7 @@ def process_clip(clip_id, youtube_url, start_time, end_time, aspect_ratio):
         python_exec,
         face_tracker_script,
         temp_raw_path,
-        final_video_path,
+        reframed_video_path,
         aspect_ratio
     ]
 
@@ -169,7 +181,7 @@ def process_clip(clip_id, youtube_url, start_time, end_time, aspect_ratio):
     if os.path.exists(temp_raw_path):
         os.remove(temp_raw_path)
 
-    if proc.returncode != 0 or not os.path.exists(final_video_path):
+    if proc.returncode != 0 or not os.path.exists(reframed_video_path):
         error_details = "\n".join(tracker_error_logs) if tracker_error_logs else "No python traceback captured."
         print(f"ERROR: Face tracking & auto-reframe step failed. Details:\n{error_details}")
         return False
@@ -187,7 +199,7 @@ def process_clip(clip_id, youtube_url, start_time, end_time, aspect_ratio):
     transcribe_cmd = [
         python_exec,
         transcribe_script,
-        final_video_path,
+        reframed_video_path,
         final_srt_path,
         groq_api_key if groq_api_key else ""
     ]
@@ -213,6 +225,39 @@ def process_clip(clip_id, youtube_url, start_time, end_time, aspect_ratio):
         error_details = "\n".join(trans_error_logs) if trans_error_logs else "No python traceback captured."
         print(f"ERROR: Transcription & subtitles generation failed. Details:\n{error_details}")
         return False
+
+    print("PROGRESS: 85")
+    sys.stdout.flush()
+
+    # Step 4: Subtitle Styling & Burn-in
+    subtitle_styler_script = os.path.join(os.path.dirname(__file__), "subtitle_styler.py")
+    final_ass_path = os.path.join(storage_dir, f"{clip_id}.ass")
+    words_json_path = os.path.join(storage_dir, f"{clip_id}_words.json")
+    
+    print("Running subtitle styler and FFmpeg burn-in...")
+    sys.stdout.flush()
+
+    styler_cmd = [
+        python_exec,
+        subtitle_styler_script,
+        reframed_video_path,
+        final_srt_path,
+        final_ass_path,
+        final_video_path,
+        words_json_path
+    ]
+
+    styler_proc = subprocess.run(styler_cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    if styler_proc.returncode != 0 or not os.path.exists(final_video_path):
+        print(f"WARNING: Subtitle styling failed. Fallback to unstyled video. Details:\n{styler_proc.stdout}")
+        import shutil
+        shutil.copy(reframed_video_path, final_video_path)
+    else:
+        print("Subtitle styling applied successfully.")
+
+    # Clean up intermediate files
+    if os.path.exists(reframed_video_path):
+        os.remove(reframed_video_path)
 
     # Output paths for Laravel to pick up
     relative_video_path = f"clips/{clip_id}.mp4"

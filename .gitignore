@@ -28,3 +28,10 @@ Thumbs.db
 /python_venv
 __pycache__/
 *.pyc
+
+# Exclude sensitive cookies and local testing files
+cookies.txt
+test.mp3
+test_groq.py
+test_groq2.py
+

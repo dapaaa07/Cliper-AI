@@ -86,7 +86,8 @@ def transcribe_clip(video_path, srt_path, groq_api_key):
             }
             data = {
                 "model": "whisper-large-v3",
-                "response_format": "verbose_json"
+                "response_format": "verbose_json",
+                "timestamp_granularities[]": ["word", "segment"]
             }
             
             response = requests.post(url, headers=headers, files=files, data=data)
@@ -104,7 +105,7 @@ def transcribe_clip(video_path, srt_path, groq_api_key):
         sys.stdout.flush()
 
         res_json = response.json()
-        segments = res_json.get("segments", [])
+        segments = res_json.get("segments") or []
 
         # Generate SRT Content
         srt_content = ""
@@ -137,6 +138,13 @@ def transcribe_clip(video_path, srt_path, groq_api_key):
         text_path = srt_path.replace(".srt", ".txt")
         with open(text_path, "w", encoding="utf-8") as f:
             f.write(res_json.get("text", "").strip())
+
+        # Save words JSON if available
+        words = res_json.get("words") or []
+        if words:
+            words_path = srt_path.replace(".srt", "_words.json")
+            with open(words_path, "w", encoding="utf-8") as f:
+                json.dump(words, f, ensure_ascii=False, indent=2)
 
         print("PROGRESS: 90")
         sys.stdout.flush()
