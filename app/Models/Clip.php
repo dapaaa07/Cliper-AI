@@ -21,6 +21,25 @@ class Clip extends Model
         'subtitle_path',
         'progress',
         'error_message',
+        'youtube_upload_status',
+        'youtube_video_id',
+        'youtube_url',
+        'youtube_title',
+        'youtube_description',
+        'youtube_tags',
+        'youtube_privacy_status',
+        'youtube_error_message',
+        'youtube_uploaded_at',
+        'youtube_publish_status',
+        'youtube_publish_at',
+        'youtube_publish_timezone',
+        'youtube_scheduled_for_local',
+    ];
+
+    protected $casts = [
+        'youtube_tags' => 'array',
+        'youtube_uploaded_at' => 'datetime',
+        'youtube_publish_at' => 'datetime',
     ];
 
     public function video(): BelongsTo

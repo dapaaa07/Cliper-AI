@@ -18,7 +18,7 @@ class ProcessVideoClipJob implements ShouldQueue
      * Video processing (download + transcode + face tracking + transcription)
      * can take several minutes for longer clips.
      */
-    public $timeout = 1800; // 30 minutes
+    public $timeout = 0; // No limit for queue worker (command line --timeout still applies)
 
     /**
      * The number of times the job may be attempted.
@@ -79,7 +79,7 @@ class ProcessVideoClipJob implements ShouldQueue
             'PYTHONUNBUFFERED' => '1', // Ensure real-time output flushing
         ]);
 
-        $process->setTimeout(600); // 10 minutes timeout for heavy processing
+        $process->setTimeout(null); // No timeout for Python processing
 
         Log::info("Starting Python AI Clipper pipeline for Clip: " . $this->clip->id);
 

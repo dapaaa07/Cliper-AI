@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'youtube' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect_uri' => env('GOOGLE_REDIRECT_URI'),
+        'default_privacy' => env('YOUTUBE_DEFAULT_PRIVACY', 'public'),
+        'publish_mode' => env('YOUTUBE_PUBLISH_MODE', 'golden_hour'),
+        'publish_timezone' => env('YOUTUBE_PUBLISH_TIMEZONE', env('APP_TIMEZONE', 'Asia/Jakarta')),
+        'golden_fixed_window_minutes' => (int) env('YOUTUBE_GOLDEN_FIXED_WINDOW_MINUTES', 30),
+        'min_schedule_lead_minutes' => (int) env('YOUTUBE_MIN_SCHEDULE_LEAD_MINUTES', 15),
+    ],
+
 ];

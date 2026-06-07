@@ -159,6 +159,67 @@
                                 <span style="font-size: 0.85rem;">Unduh VTT</span>
                             </a>
                         </div>
+
+                        <!-- YouTube Upload Section -->
+                        <div class="youtube-upload-section" 
+                             data-clip-id="{{ $clip->id }}" 
+                             data-status-url="{{ route('clips.youtube.status', $clip->id) }}"
+                             data-current-status="{{ $clip->youtube_upload_status }}"
+                             style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                            
+                            <div class="youtube-status-container">
+                                @if($clip->youtube_upload_status === 'uploaded' && $clip->youtube_url)
+                                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                        <a href="{{ $clip->youtube_url }}" target="_blank" rel="noopener" class="btn-primary" style="background: #ef4444; border-color: #ef4444; width: 100%;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
+                                                <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon>
+                                            </svg>
+                                            <span>Lihat di YouTube</span>
+                                        </a>
+                                        <div style="font-size: 0.85rem; color: #10b981; text-align: center;">✓ Berhasil dipublish public</div>
+                                    </div>
+                                @elseif($clip->youtube_upload_status === 'scheduled')
+                                    <div style="display: flex; flex-direction: column; gap: 0.5rem; text-align: center;">
+                                        <div style="padding: 0.75rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px;">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 0.5rem;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                            <div style="color: #3b82f6; font-weight: bold; font-size: 0.95rem;">Terjadwal Public</div>
+                                            <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Pada: {{ $clip->youtube_scheduled_for_local }}</div>
+                                        </div>
+                                    </div>
+                                @elseif(in_array($clip->youtube_upload_status, ['queued', 'generating_metadata', 'uploading']))
+                                    <button disabled class="btn-secondary" style="width: 100%; opacity: 0.7; cursor: not-allowed;">
+                                        <span class="spinner" style="width:16px; height:16px; border-width:2px; margin-right: 8px; display:inline-block;"></span>
+                                        @if($clip->youtube_upload_status === 'queued')
+                                            <span>Menunggu queue upload...</span>
+                                        @elseif($clip->youtube_upload_status === 'generating_metadata')
+                                            <span>Membuat caption AI...</span>
+                                        @elseif($clip->youtube_upload_status === 'uploading')
+                                            <span>Mengupload ke YouTube...</span>
+                                        @else
+                                            <span>Memproses...</span>
+                                        @endif
+                                    </button>
+                                @else
+                                    <form method="POST" action="{{ route('clips.youtube.upload', $clip->id) }}">
+                                        @csrf
+                                        <button type="submit" class="btn-secondary" style="width: 100%; border-color: #ef4444; color: #ef4444;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+                                                <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
+                                                <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon>
+                                            </svg>
+                                            <span>Upload ke YouTube</span>
+                                        </button>
+                                    </form>
+                                @endif
+
+                                @if($clip->youtube_upload_status === 'failed')
+                                    <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #ef4444; background: rgba(239,68,68,0.1); padding: 0.5rem; border-radius: 4px;">
+                                        Gagal: {{ $clip->youtube_error_message }}
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -207,5 +268,37 @@
             console.error('Gagal menyalin teks:', err);
         });
     }
+
+    // YouTube Status Polling
+    document.addEventListener('DOMContentLoaded', function() {
+        const activeStatuses = ['queued', 'generating_metadata', 'uploading'];
+        
+        document.querySelectorAll('.youtube-upload-section').forEach(section => {
+            const statusUrl = section.getAttribute('data-status-url');
+            let currentStatus = section.getAttribute('data-current-status');
+            
+            if (activeStatuses.includes(currentStatus)) {
+                pollYouTubeStatus(section, statusUrl, currentStatus);
+            }
+        });
+
+        function pollYouTubeStatus(section, url, initialStatus) {
+            const interval = setInterval(() => {
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.youtube_upload_status !== initialStatus) {
+                            // If status changed, just reload the page for now to get fresh UI.
+                            // A more robust way would be to rebuild DOM, but reload is safe and quick.
+                            window.location.reload();
+                        }
+                        if (!activeStatuses.includes(data.youtube_upload_status)) {
+                            clearInterval(interval);
+                        }
+                    })
+                    .catch(err => console.error('Polling error:', err));
+            }, 5000); // 5 seconds
+        }
+    });
 </script>
 @endsection

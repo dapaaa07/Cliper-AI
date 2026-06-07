@@ -53,8 +53,7 @@ def process_clip(clip_id, youtube_url, start_time, end_time, aspect_ratio):
         "--js-runtimes", "node",
         "--remote-components", "ejs:github",
     ] + cookies_args + [
-        "--external-downloader", "ffmpeg",
-        "--external-downloader-args", f"ffmpeg_i:-ss {start_time} -to {end_time}",
+        "--download-sections", f"*{start_time}-{end_time}",
         "-f", "bestvideo[vcodec^=avc1][ext=mp4]+bestaudio[ext=m4a]/bestvideo[vcodec^=avc1]+bestaudio/best[ext=mp4]/best",
         "--merge-output-format", "mp4",
         "--output", temp_raw_path,
@@ -69,13 +68,14 @@ def process_clip(clip_id, youtube_url, start_time, end_time, aspect_ratio):
             print(result.stderr.decode('utf-8', errors='replace'))
         sys.stdout.flush()
         
-        # Fallback: download any format, then transcode
+        # Fallback: download any format with sections
         fallback_cmd = [
             ytdlp_bin,
             "--no-playlist",
             "--js-runtimes", "node",
             "--remote-components", "ejs:github",
         ] + cookies_args + [
+            "--download-sections", f"*{start_time}-{end_time}",
             "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
             "--merge-output-format", "mp4",
             "--output", temp_raw_path,
@@ -86,23 +86,6 @@ def process_clip(clip_id, youtube_url, start_time, end_time, aspect_ratio):
         if result_fallback.returncode != 0 or not os.path.exists(temp_raw_path):
             print("ERROR: All download attempts failed.")
             return False
-        
-        # Cut video manually with FFmpeg (and transcode to H.264)
-        print("Manually cutting the downloaded video...")
-        sys.stdout.flush()
-        cut_path = temp_raw_path.replace("_raw.mp4", "_cut.mp4")
-        ffmpeg_cut = [
-            "ffmpeg", "-y",
-            "-ss", start_time,
-            "-to", end_time,
-            "-i", temp_raw_path,
-            "-c:v", "libx264",
-            "-c:a", "aac",
-            cut_path
-        ]
-        subprocess.run(ffmpeg_cut, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        os.remove(temp_raw_path)
-        os.rename(cut_path, temp_raw_path)
 
     # Step 1b: Ensure the downloaded video is in H.264 format (transcode AV1/VP9 if needed)
     # This guarantees OpenCV can read every frame

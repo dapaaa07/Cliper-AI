@@ -8,6 +8,7 @@ use App\Models\Video;
 use App\Models\Clip;
 use App\Jobs\ProcessVideoClipJob;
 use Symfony\Component\Process\Process;
+use App\Services\VideoAnalyzerService;
 
 class VideoController extends Controller
 {
@@ -79,6 +80,26 @@ class VideoController extends Controller
     public function select(Video $video)
     {
         return view('clip_selector', compact('video'));
+    }
+
+    /**
+     * Auto analyze viral timestamps using Gemini API.
+     */
+    public function autoAnalyze(Video $video, VideoAnalyzerService $analyzerService)
+    {
+        try {
+            set_time_limit(300);
+            $timestamps = $analyzerService->analyzeViralMoments($video);
+            return response()->json([
+                'success' => true,
+                'data' => $timestamps
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

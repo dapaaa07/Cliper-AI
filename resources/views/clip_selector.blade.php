@@ -93,9 +93,24 @@
     <div>
         <div class="glass-panel">
             <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;">Tentukan Rentang Durasi Klip</h2>
-            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 2rem;">
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1.5rem;">
                 Anda bisa membuat lebih dari 1 hasil klip dari video di samping. Format waktu adalah **Jam:Menit:Detik** (contoh: `00:01:30`).
             </p>
+
+            <button type="button" id="auto-analyze-btn" class="btn-primary" style="width: 100%; margin-bottom: 2rem; background: linear-gradient(135deg, #8b5cf6, #3b82f6); border: none; font-weight: bold;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <span>✨ Analisa Momen Viral Otomatis dengan AI</span>
+            </button>
+            <div id="ai-loading" style="display: none; text-align: center; margin-bottom: 2rem; color: #a78bfa;">
+                <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite; display: inline-block; vertical-align: middle;">
+                    <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke-opacity="0.75"></path>
+                </svg>
+                <span style="display: inline-block; vertical-align: middle; margin-left: 0.5rem; font-weight: 500;">AI sedang menganalisa video, mohon tunggu beberapa saat...</span>
+                <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+            </div>
 
             <form action="{{ route('videos.storeClips', $video->id) }}" method="POST">
                 @csrf
@@ -241,5 +256,100 @@
             }, 180);
         }
     }
+
+    const autoAnalyzeBtn = document.getElementById('auto-analyze-btn');
+    const aiLoading = document.getElementById('ai-loading');
+
+    autoAnalyzeBtn.addEventListener('click', async () => {
+        autoAnalyzeBtn.style.display = 'none';
+        aiLoading.style.display = 'block';
+
+        try {
+            const response = await fetch(`{{ route('videos.autoAnalyze', $video->id) }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data && result.data.length > 0) {
+                // Clear existing rows except the first one
+                clipsContainer.innerHTML = '';
+                clipIndex = 0;
+
+                result.data.forEach((clipData, i) => {
+                    const newRow = document.createElement('div');
+                    newRow.className = 'clip-row';
+                    newRow.id = `clip-row-${clipIndex}`;
+
+                    newRow.innerHTML = `
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; color: var(--text-muted);">
+                                Waktu Mulai (Start)
+                            </label>
+                            <input 
+                                type="text" 
+                                name="clips[${clipIndex}][start_time]" 
+                                class="glass-input" 
+                                placeholder="00:00:00" 
+                                required
+                                pattern="\\d{2}:\\d{2}:\\d{2}"
+                                value="${clipData.start_time}"
+                            >
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; color: var(--text-muted);">
+                                Waktu Selesai (End)
+                            </label>
+                            <input 
+                                type="text" 
+                                name="clips[${clipIndex}][end_time]" 
+                                class="glass-input" 
+                                placeholder="00:00:30" 
+                                required
+                                pattern="\\d{2}:\\d{2}:\\d{2}"
+                                value="${clipData.end_time}"
+                            >
+                        </div>
+                        <div class="clip-row-ratio">
+                            <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 0.5rem; color: var(--text-muted);">
+                                Aspek Rasio (AI Reframe)
+                            </label>
+                            <select name="clips[${clipIndex}][aspect_ratio]" class="glass-input" style="height: 52px; appearance: none; background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239ca3af%22 stroke-width=%222.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 1rem center; padding-right: 2.5rem;">
+                                <option value="vertical">Vertikal (9:16) - AI Face Tracking 👤</option>
+                                <option value="horizontal">Horizontal (16:9) - Standar 📺</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button type="button" class="btn-danger remove-btn" onclick="removeRow(${clipIndex})" style="${clipIndex === 0 ? 'opacity: 0; pointer-events: none;' : ''} height: 52px; padding: 0 1.25rem;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div style="grid-column: 1 / -1; background: rgba(167, 139, 250, 0.1); border: 1px dashed rgba(167, 139, 250, 0.3); border-radius: 8px; padding: 0.75rem; font-size: 0.85rem; color: #d8b4fe; margin-top: 0.5rem;">
+                            <strong>✨ AI Score: ${clipData.score}/10</strong><br>
+                            ${clipData.reasoning}
+                        </div>
+                    `;
+
+                    clipsContainer.appendChild(newRow);
+                    clipIndex++;
+                });
+            } else {
+                alert('Gagal menganalisa video atau tidak ada momen yang ditemukan. ' + (result.message || ''));
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Terjadi kesalahan saat memproses analisa otomatis AI.');
+        } finally {
+            autoAnalyzeBtn.style.display = 'flex';
+            aiLoading.style.display = 'none';
+        }
+    });
 </script>
 @endsection
